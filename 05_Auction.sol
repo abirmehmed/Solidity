@@ -1,4 +1,6 @@
-pragma solidity ^0.5.0;
+//SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.0;
 
 contract Auction {
     address payable public beneficiary;
@@ -13,13 +15,13 @@ contract Auction {
     event HighestBidIncreased(address bidder, uint amount);
     event AuctionEnded(address winner, uint amount);
 
-    constructor(uint _biddingTime, address payable _beneficiary) public {
+    constructor(uint _biddingTime, address payable _beneficiary) {
         beneficiary = _beneficiary;
-        auctionEndTime = now + _biddingTime;
+        auctionEndTime = block.timestamp + _biddingTime;
     }
 
     function bid() public payable {
-        require(now <= auctionEndTime, "Auction already ended.");
+        require(block.timestamp <= auctionEndTime, "Auction already ended.");
         require(msg.value > highestBid, "There already is a higher bid.");
 
         if (highestBid != 0) {
@@ -35,7 +37,8 @@ contract Auction {
         if (amount > 0) {
             pendingReturns[msg.sender] = 0;
 
-            if (!msg.sender.send(amount)) {
+            (bool success,) = msg.sender.call{value: amount}("");
+            if (!success) {
                 pendingReturns[msg.sender] = amount;
                 return false;
             }
@@ -44,7 +47,7 @@ contract Auction {
     }
 
     function auctionEnd() public {
-        require(now >= auctionEndTime, "Auction not yet ended.");
+        require(block.timestamp >= auctionEndTime, "Auction not yet ended.");
         require(!ended, "auctionEnd has already been called.");
 
         ended = true;
